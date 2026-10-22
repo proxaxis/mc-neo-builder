@@ -1,0 +1,70 @@
+name: mc_neo_builder
+
+services:
+  # Development Container
+  workspace:
+    build:
+      context: ./workspace
+      dockerfile: Dockerfile
+    image: mc-neo-builder-workspace:latest
+    container_name: mc_neo_builder_workspace
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./workspace/app:/app:cached
+      - nv_dist:/app/dist
+    command: sleep infinity
+    networks:
+      - n-mc_neo_builder
+
+  # Test Minecraft Server
+  testserver:
+    build:
+      context: ./testserver
+      dockerfile: Dockerfile
+    image: mc-neo-builder-testserver:latest
+    container_name: mc_neo_builder_testserver
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "26.3"
+      ONLINE_MODE: "FALSE"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "devpassword"
+      JVM_XX_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    ports:
+      - "25565:25565"
+      - "5005:5005"
+      - "25575:25575"
+    stdin_open: true
+    tty: true
+    volumes:
+      - nv_server_data:/data
+      - nv_dist:/dist:ro
+    networks:
+      - n-mc_neo_builder
+
+  # Operation Agent
+  operationer:
+    build:
+      context: ./operationer
+      dockerfile: Dockerfile
+    image: mc-neo-builder-operationer:latest
+    container_name: mc_neo_builder_operationer
+    shm_size: "2gb"
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/operationer
+    command: sleep infinity
+    networks:
+      - n-mc_neo_builder
+
+volumes:
+  nv_server_data:
+  nv_dist:
+
+networks:
+  n-mc_neo_builder:
+    driver: bridge
