@@ -295,20 +295,20 @@ BC_PIPE_TEX = {
     "pipe_gold": "gold_item", "pipe_diamond": "diamond_item",
     "pipe_obsidian": "obsidian_item", "pipe_emerald": "emzuli_item_filled",
     "pipe_void": "void_item", "pipe_extract": "wood_item_filled",
-    "pipe_distribution": "stripes_item", "pipe_teleport": "lazuli_item_filled",
+    "pipe_distribution": "stripes_item", "pipe_teleport": "lapis_item_purple",
     "pipe_teleport_structure": "quartz_item",
-    "pipe_logistics": "daizuli_item_filled", "pipe_provider": "lazuli_item_filled",
+    "pipe_logistics": "daizuli_item_filled", "pipe_provider": "lapis_item_orange",
     "pipe_request": "daizuli_item_filled", "pipe_supplier": "sandstone_item",
     "pipe_crafting": "quartz_item", "pipe_satellite": "void_item",
     "pipe_fluid": "diorite_fluid", "pipe_fluid_cobble": "cobblestone_fluid",
     "pipe_fluid_stone": "stone_fluid", "pipe_fluid_sand": "sandstone_fluid",
-    "pipe_fluid_iron": "iron_fluid", "pipe_fluid_gold": "gold_fluid",
-    "pipe_fluid_emerald": "emzuli_fluid", "pipe_fluid_void": "void_fluid",
+    "pipe_fluid_iron": "iron_fluid_filled", "pipe_fluid_gold": "gold_fluid",
+    "pipe_fluid_emerald": "diamond_fluid", "pipe_fluid_void": "void_fluid",
     "pipe_teleport_fluid": "quartz_fluid",
     "pipe_kinesis": "gold_power",
     "cable_copper": "cobblestone_power", "cable_gold": "gold_power",
-    "cable_gold_ins2": "gold_power", "cable_hv": "iron_power",
-    "cable_hv_ins2": "iron_power", "cable_hv_ins4": "diamond_power",
+    "cable_gold_ins2": "gold_power", "cable_hv": "iron_power_filled",
+    "cable_hv_ins2": "iron_power_filled", "cable_hv_ins4": "diamond_power",
     "cable_glass": "quartz_power",
     "transformer_lv": "sandstone_power", "transformer_mv": "stone_power",
     "transformer_hv": "diamond_power",
@@ -706,16 +706,17 @@ def engine_model(name):
         f: {"texture": "#front"} for f in ("north", "south", "east", "west", "up", "down")}}
     return {"textures": t, "elements": [base, head]}
 
-def wall_pipe_blockstates(wl_map):
-    """壁blockstate: waterloggedで2種を同居させ、N/E/S/W(low|tall)+upで腕を出す"""
+def wall_pipe_blockstates(up_map):
+    """壁blockstate: upを種別bitとして2種を同居させ、N/E/S/W(low|tall)で腕を出す。
+    (waterloggedは水描画が出るため使わない / upはサーバ側が物理キャンセルで固定する)"""
     parts = []
-    for wl, typ in sorted(wl_map.items()):
-        wv = "true" if wl else "false"
-        parts.append({"when": {"waterlogged": wv},
+    for up, typ in sorted(up_map.items()):
+        uv = "true" if up else "false"
+        parts.append({"when": {"up": uv},
                       "apply": {"model": f"neobuilder:block/pipe_{typ}_core"}})
         for face, rot in [("north", {}), ("east", {"y": 90}),
                           ("south", {"y": 180}), ("west", {"y": 270})]:
-            parts.append({"when": {"waterlogged": wv, face: "low|tall"},
+            parts.append({"when": {"up": uv, face: "low|tall"},
                           "apply": {"model": f"neobuilder:block/pipe_{typ}_arm",
                                     "uvlock": True, **rot}})
     return {"multipart": parts}

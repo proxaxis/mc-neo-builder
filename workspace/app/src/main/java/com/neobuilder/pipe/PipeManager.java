@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -153,9 +154,24 @@ public final class PipeManager implements Listener {
         for (Pipe p : l) applyVisual(p);
     }
 
+    /**
+     * 壁ホストの物理更新を凍結する。
+     * バニラは隣接更新で up と接続高さを自動再計算してしまうため、
+     * 種別bit(up)と腕(高さ)をサーバ管理値で固定する意味でパイプの物理は無効化する。
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPhysics(BlockPhysicsEvent e) {
+        Material t = e.getBlock().getType();
+        if (!HOST_MATERIALS.contains(t)) return;
+        if (at(e.getBlock()) != null) e.setCancelled(true);
+    }
+
     // --- パイプ見た目（壁blockstate 連動） ---
 
-    private record WallHost(Material mat, boolean wl) {}
+    // 第2引数は「種別bit」: 同一壁ホストで up=false/true の2種を区別する。
+    // waterloggedはクライアントに水が描画されてしまうため使えない。
+    // upはバニラが物理更新で自動再計算するため、onPhysicsでパイプの更新をキャンセルして固定する。
+    private record WallHost(Material mat, boolean up) {}
 
     private static final Map<String, WallHost> WALL_HOSTS = Map.ofEntries(
             Map.entry("pipe_transport", new WallHost(Material.COBBLESTONE_WALL, false)),
@@ -197,6 +213,9 @@ public final class PipeManager implements Listener {
             Map.entry("transformer_lv", new WallHost(Material.RED_SANDSTONE_WALL, false)),
             Map.entry("transformer_mv", new WallHost(Material.COBBLED_DEEPSLATE_WALL, false)),
             Map.entry("transformer_hv", new WallHost(Material.TUFF_BRICK_WALL, false)));
+
+    private static final Set<Material> HOST_MATERIALS = WALL_HOSTS.values().stream()
+            .map(WallHost::mat).collect(java.util.stream.Collectors.toUnmodifiableSet());
     private static final WallHost DEF_HOST = new WallHost(Material.ANDESITE_WALL, false);
 
     /** パイプ種別 → 見た目ファミリ (item/fluid/energy) — 接続判定用 */
@@ -236,7 +255,8 @@ public final class PipeManager implements Listener {
             Wall.Height tgt = want ? Wall.Height.LOW : Wall.Height.NONE;
             if (w.getHeight(f) != tgt) { w.setHeight(f, tgt); changed = true; }
         }
-        if (w.isWaterlogged() != host.wl()) { w.setWaterlogged(host.wl()); changed = true; }
+        if (w.isWaterlogged()) { w.setWaterlogged(false); changed = true; }
+        if (w.isUp() != host.up()) { w.setUp(host.up()); changed = true; }
         if (changed) b.setBlockData(w, false);
     }
 

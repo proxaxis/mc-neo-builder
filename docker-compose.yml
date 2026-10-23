@@ -32,7 +32,7 @@ services:
       ENABLE_RCON: "true"
       RCON_PASSWORD: "devpassword"
       RESOURCE_PACK: "http://localserver:8000/NeoBuilderResourcePack.zip"
-      RESOURCE_PACK_SHA1: "77d5d5a4059b3d30da9b6cda099dc8cd1859a3b6"
+      RESOURCE_PACK_SHA1: "32c430011a7dd0aaa7e0363d9ee38d1190932c61"
       RESOURCE_PACK_ENFORCE: "true"
       JVM_XX_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     ports:
