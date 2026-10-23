@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "neobuilder-blocks",
+  "version": "0.1.0",
+  "name": "NeoBuilder Blocks",
+  "description": "Renders server-driven custom blocks for NeoBuilder",
+  "environment": "client",
+  "entrypoints": {
+    "main": ["nb.NbPipeMod"],
+    "client": ["nb.NbPipeMod"]
+  },
+  "depends": {
+    "minecraft": "*",
+    "fabricloader": ">=0.15"
+  },
+  "mixins": ["neobuilder.mixins.json"]
+}

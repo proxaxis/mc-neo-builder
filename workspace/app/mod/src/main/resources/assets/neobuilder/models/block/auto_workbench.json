@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "neobuilder:block/auto_workbench_front",
+    "north": "neobuilder:block/auto_workbench_front",
+    "south": "neobuilder:block/auto_workbench_back",
+    "east": "neobuilder:block/auto_workbench_side",
+    "west": "neobuilder:block/auto_workbench_side",
+    "up": "neobuilder:block/auto_workbench_top",
+    "down": "neobuilder:block/auto_workbench_front"
+  }
+}

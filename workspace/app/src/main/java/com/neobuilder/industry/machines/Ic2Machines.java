@@ -90,8 +90,13 @@ public final class Ic2Machines {
                 if (fuel != null) burn = fuel.getType() == Material.BLAZE_ROD ? 240 : 160;
             }
             energy = Math.min(energy, maxEnergy);
-            if (energy > 20) energy = plugin.energy().distributeToNeighbors(b, energy * 0.5) ;
+            if (energy > 20) {
+                double push = energy * 0.5;
+                energy = Math.min(energy - push + plugin.energy().distributeToNeighbors(b, push), maxEnergy);
+            }
         }
+        /** 発電機はMJを受け取らない */
+        @Override public double receiveEnergy(double amount) { return 0; }
     }
 
     // ---------- ソーラーパネル ----------
@@ -101,8 +106,13 @@ public final class Ic2Machines {
             if (b.getWorld().isDayTime() && b.getWorld().getHighestBlockYAt(b.getLocation()) <= b.getY() + 1) {
                 energy = Math.min(energy + 1, maxEnergy); // 1 MJ/t
             }
-            if (energy > 4) energy = plugin.energy().distributeToNeighbors(b, energy * 0.5);
+            if (energy > 4) {
+                double push = energy * 0.5;
+                energy = Math.min(energy - push + plugin.energy().distributeToNeighbors(b, push), maxEnergy);
+            }
         }
+        /** ソーラーはMJを受け取らない */
+        @Override public double receiveEnergy(double amount) { return 0; }
     }
 
     // ---------- 蓄電機（MJバッテリ）----------
@@ -116,7 +126,7 @@ public final class Ic2Machines {
         @Override public void tick(Block b) {
             // 蓄えたエネルギーをrateOut/tまで周囲へ放電
             double out = Math.min(energy, rateOut);
-            if (out > 0) energy = plugin.energy().distributeToNeighbors(b, out);
+            if (out > 0) energy = energy - out + plugin.energy().distributeToNeighbors(b, out);
         }
     }
 

@@ -5,17 +5,23 @@ import com.neobuilder.core.util.Blocks;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.type.Wall;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -43,7 +49,24 @@ public final class PipeManager implements Listener {
             BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST,
             BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
+    /** 表示用ディスプレイのアイテムcmd: core=31100+i, arm=31300+i（gen_pack.py の PIPE_HOSTS 順と一致） */
+    private static final String[] PIPE_TYPES = {
+            "pipe_transport", "pipe_stone", "pipe_sandstone", "pipe_iron", "pipe_gold",
+            "pipe_diamond", "pipe_obsidian", "pipe_emerald", "pipe_void", "pipe_extract",
+            "pipe_distribution", "pipe_teleport", "pipe_teleport_structure",
+            "pipe_logistics", "pipe_provider", "pipe_request", "pipe_supplier",
+            "pipe_crafting", "pipe_satellite", "pipe_fluid", "pipe_fluid_cobble",
+            "pipe_fluid_stone", "pipe_fluid_sand", "pipe_fluid_iron", "pipe_fluid_gold",
+            "pipe_fluid_emerald", "pipe_fluid_void", "pipe_teleport_fluid", "pipe_kinesis",
+            "cable_copper", "cable_gold", "cable_gold_ins2", "cable_hv",
+            "cable_hv_ins2", "cable_hv_ins4", "cable_glass",
+            "transformer_lv", "transformer_mv", "transformer_hv"};
+
+    /** パイプの設置ベース: 非クラフト・破壊可能なカルサイト（見た目はDisplayで上書き） */
+    private static final Material BASE = Material.CALCITE;
+
     private final NeoBuilderPlugin plugin;
+    private org.bukkit.NamespacedKey visKey;
     private final Map<String, Pipe> pipes = new ConcurrentHashMap<>();
     private final Map<String, List<Pipe>> byChunk = new ConcurrentHashMap<>(); // "world:cx,cz" -> pipes
     private final List<Pipe> extracts = new ArrayList<>();   // 抽出パイプ
@@ -65,12 +88,15 @@ public final class PipeManager implements Listener {
     }
 
     public void enable() {
+        this.visKey = plugin.key("pipe_vis");
         this.fluidManager = new FluidManager(plugin, this);
         load();
         // 既存パイプを新ホストブロック描画へ移行
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Pipe p : pipes.values()) applyVisual(p);
         }, 40L);
+        // MODクライアント向けカスタムブロック配信チャネル
+        Bukkit.getMessenger().registerOutgoingPluginChannel(plugin, "neobuilder:blocks");
         Bukkit.getPluginManager().registerEvents(this, plugin);
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -103,6 +129,8 @@ public final class PipeManager implements Listener {
     private void removePipe(String key) {
         Pipe p = pipes.remove(key);
         if (p == null) return;
+        encCache.remove(key);
+        broadcastPipe(key, -1); // op=2 除去
         String[] pr = Blocks.parse(key);
         List<Pipe> cl = byChunk.get(pr[0] + ":" + (Integer.parseInt(pr[1]) >> 4) + "," + (Integer.parseInt(pr[3]) >> 4));
         if (cl != null) cl.remove(p);
@@ -130,6 +158,7 @@ public final class PipeManager implements Listener {
         }
         Pipe p = new Pipe(id, Blocks.key(e.getBlockPlaced()));
         addPipe(p);
+        e.getBlockPlaced().setType(BASE, false);
         applyVisual(p);
         refreshAround(e.getBlockPlaced());
     }
@@ -140,10 +169,26 @@ public final class PipeManager implements Listener {
         Pipe p = at(b);
         if (p == null) { refreshAround(b); return; }
         removePipe(p.key());
+        clearVisual(b);
         e.setDropItems(false);
         ItemStack drop = plugin.items().create(p.type());
         if (drop != null) b.getWorld().dropItemNaturally(b.getLocation(), drop);
         refreshAround(b);
+    }
+
+    /** 爆発でベースブロックが消えても表示エンティティが残らないよう除去 */
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityExplode(EntityExplodeEvent e) { explodePipes(e.blockList()); }
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockExplode(BlockExplodeEvent e) { explodePipes(e.blockList()); }
+
+    private void explodePipes(List<Block> blocks) {
+        for (Block b : blocks) {
+            Pipe p = at(b);
+            if (p == null) continue;
+            removePipe(p.key());
+            clearVisual(b);
+        }
     }
 
     /** チャンク読み込み時にパイプ見た目を再適用（起動時に未ロードだった分の補正） */
@@ -155,68 +200,17 @@ public final class PipeManager implements Listener {
     }
 
     /**
-     * 壁ホストの物理更新を凍結する。
-     * バニラは隣接更新で up と接続高さを自動再計算してしまうため、
-     * 種別bit(up)と腕(高さ)をサーバ管理値で固定する意味でパイプの物理は無効化する。
+     * パイプホストの物理更新を凍結する。
+     * 壁/ペインは隣接更新で接続プロパティ(up/高さ/面)を自動再計算してしまうため、
+     * 登録済みパイプではバニラの再計算をキャンセルし、表示状態をサーバ管理値で固定する。
      */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPhysics(BlockPhysicsEvent e) {
-        Material t = e.getBlock().getType();
-        if (!HOST_MATERIALS.contains(t)) return;
+        if (e.getBlock().getType() != BASE) return;
         if (at(e.getBlock()) != null) e.setCancelled(true);
     }
 
-    // --- パイプ見た目（壁blockstate 連動） ---
-
-    // 第2引数は「種別bit」: 同一壁ホストで up=false/true の2種を区別する。
-    // waterloggedはクライアントに水が描画されてしまうため使えない。
-    // upはバニラが物理更新で自動再計算するため、onPhysicsでパイプの更新をキャンセルして固定する。
-    private record WallHost(Material mat, boolean up) {}
-
-    private static final Map<String, WallHost> WALL_HOSTS = Map.ofEntries(
-            Map.entry("pipe_transport", new WallHost(Material.COBBLESTONE_WALL, false)),
-            Map.entry("pipe_stone", new WallHost(Material.STONE_BRICK_WALL, false)),
-            Map.entry("pipe_sandstone", new WallHost(Material.SANDSTONE_WALL, false)),
-            Map.entry("pipe_iron", new WallHost(Material.DIORITE_WALL, false)),
-            Map.entry("pipe_gold", new WallHost(Material.GRANITE_WALL, false)),
-            Map.entry("pipe_diamond", new WallHost(Material.PRISMARINE_WALL, false)),
-            Map.entry("pipe_obsidian", new WallHost(Material.BLACKSTONE_WALL, false)),
-            Map.entry("pipe_emerald", new WallHost(Material.MOSSY_COBBLESTONE_WALL, false)),
-            Map.entry("pipe_void", new WallHost(Material.POLISHED_BLACKSTONE_WALL, false)),
-            Map.entry("pipe_extract", new WallHost(Material.ANDESITE_WALL, false)),
-            Map.entry("pipe_distribution", new WallHost(Material.MUD_BRICK_WALL, false)),
-            Map.entry("pipe_teleport", new WallHost(Material.END_STONE_BRICK_WALL, false)),
-            Map.entry("pipe_teleport_structure", new WallHost(Material.DEEPSLATE_TILE_WALL, false)),
-            Map.entry("pipe_logistics", new WallHost(Material.BRICK_WALL, false)),
-            Map.entry("pipe_provider", new WallHost(Material.NETHER_BRICK_WALL, false)),
-            Map.entry("pipe_request", new WallHost(Material.RED_NETHER_BRICK_WALL, false)),
-            Map.entry("pipe_supplier", new WallHost(Material.MOSSY_STONE_BRICK_WALL, false)),
-            Map.entry("pipe_crafting", new WallHost(Material.POLISHED_DEEPSLATE_WALL, false)),
-            Map.entry("pipe_satellite", new WallHost(Material.DEEPSLATE_BRICK_WALL, false)),
-            Map.entry("pipe_fluid", new WallHost(Material.COBBLESTONE_WALL, true)),
-            Map.entry("pipe_fluid_cobble", new WallHost(Material.STONE_BRICK_WALL, true)),
-            Map.entry("pipe_fluid_stone", new WallHost(Material.SANDSTONE_WALL, true)),
-            Map.entry("pipe_fluid_sand", new WallHost(Material.PRISMARINE_WALL, true)),
-            Map.entry("pipe_fluid_iron", new WallHost(Material.DIORITE_WALL, true)),
-            Map.entry("pipe_fluid_gold", new WallHost(Material.GRANITE_WALL, true)),
-            Map.entry("pipe_fluid_emerald", new WallHost(Material.MOSSY_COBBLESTONE_WALL, true)),
-            Map.entry("pipe_fluid_void", new WallHost(Material.BLACKSTONE_WALL, true)),
-            Map.entry("pipe_teleport_fluid", new WallHost(Material.END_STONE_BRICK_WALL, true)),
-            Map.entry("pipe_kinesis", new WallHost(Material.TUFF_WALL, false)),
-            Map.entry("cable_copper", new WallHost(Material.BRICK_WALL, true)),
-            Map.entry("cable_gold", new WallHost(Material.MUD_BRICK_WALL, true)),
-            Map.entry("cable_gold_ins2", new WallHost(Material.NETHER_BRICK_WALL, true)),
-            Map.entry("cable_hv", new WallHost(Material.RED_NETHER_BRICK_WALL, true)),
-            Map.entry("cable_hv_ins2", new WallHost(Material.MOSSY_STONE_BRICK_WALL, true)),
-            Map.entry("cable_hv_ins4", new WallHost(Material.POLISHED_DEEPSLATE_WALL, true)),
-            Map.entry("cable_glass", new WallHost(Material.ANDESITE_WALL, true)),
-            Map.entry("transformer_lv", new WallHost(Material.RED_SANDSTONE_WALL, false)),
-            Map.entry("transformer_mv", new WallHost(Material.COBBLED_DEEPSLATE_WALL, false)),
-            Map.entry("transformer_hv", new WallHost(Material.TUFF_BRICK_WALL, false)));
-
-    private static final Set<Material> HOST_MATERIALS = WALL_HOSTS.values().stream()
-            .map(WallHost::mat).collect(java.util.stream.Collectors.toUnmodifiableSet());
-    private static final WallHost DEF_HOST = new WallHost(Material.ANDESITE_WALL, false);
+    // --- パイプ見た目（ItemDisplay描画。ベース=カルサイトでバニラの見た目を汚染しない） ---
 
     /** パイプ種別 → 見た目ファミリ (item/fluid/energy) — 接続判定用 */
     private String familyOf(Pipe p) {
@@ -225,8 +219,123 @@ public final class PipeManager implements Listener {
         return "item";
     }
 
-    private WallHost hostOf(Pipe p) {
-        return WALL_HOSTS.getOrDefault(p.type(), DEF_HOST);
+    private static int typeIndex(String type) {
+        for (int i = 0; i < PIPE_TYPES.length; i++)
+            if (PIPE_TYPES[i].equals(type)) return i;
+        return 0;
+    }
+
+    /** 腕モデルはnorth(-Z)向き。他方向は回転で表現 */
+    private static Quaternionf armRotation(BlockFace f) {
+        return switch (f) {
+            case SOUTH -> new Quaternionf().rotateY((float) Math.PI);
+            case EAST  -> new Quaternionf().rotateY((float) -Math.PI / 2);
+            case WEST  -> new Quaternionf().rotateY((float) Math.PI / 2);
+            case UP    -> new Quaternionf().rotateX((float) Math.PI / 2);
+            case DOWN  -> new Quaternionf().rotateX((float) -Math.PI / 2);
+            default -> null;
+        };
+    }
+
+    private ItemStack dispItem(int cmd) {
+        ItemStack s = new ItemStack(Material.STICK);
+        var m = s.getItemMeta();
+        m.setCustomModelData(cmd);
+        s.setItemMeta(m);
+        return s;
+    }
+
+    /** ベースブロック内の既存表示を除去（重複/残骸対策） */
+    private void clearVisual(Block b) {
+        for (var e : b.getWorld().getNearbyEntities(b.getLocation().add(0.5, 0.5, 0.5),
+                0.6, 0.6, 0.6, ent -> ent instanceof ItemDisplay))
+            if (e.getPersistentDataContainer().has(visKey)) e.remove();
+    }
+
+    /** ベースブロックをカルサイトにし、中心+接続方向の腕をItemDisplayで描画する */
+    private void applyVisual(Pipe p) {
+        Block b = blockOf(p.key());
+        if (b == null) return;
+        if (b.getType() != BASE) b.setType(BASE, false);
+        clearVisual(b);
+        Location c = b.getLocation().add(0.5, 0.5, 0.5);
+        int idx = typeIndex(p.type());
+        spawnDisp(c, dispItem(31100 + idx), null);
+        int mask = 0;
+        for (BlockFace f : FACES) {
+            if (!connects(p, b.getRelative(f))) continue;
+            mask |= maskBit(f);
+            spawnDisp(c, dispItem(31300 + idx), armRotation(f));
+        }
+        syncPipe(p.key(), idx << 6 | mask);
+    }
+
+    private static int maskBit(BlockFace f) {
+        return switch (f) {
+            case NORTH -> 1; case EAST -> 2; case SOUTH -> 4;
+            case WEST -> 8; case UP -> 16; default -> 32;
+        };
+    }
+
+    // --- MODクライアントへのカスタムブロック配信 ---
+    // payload: op(varint: 0=全消去 1=登録 2=除去) + 件数 + [x,y,z,state]*n
+    private final Map<String, Integer> encCache = new ConcurrentHashMap<>();
+
+    private static void writeVarInt(java.io.DataOutputStream o, int v) throws java.io.IOException {
+        while ((v & ~0x7F) != 0) { o.writeByte(v & 0x7F | 0x80); v >>>= 7; }
+        o.writeByte(v);
+    }
+
+    private void broadcastPipe(String key, int enc) {
+        String[] pr = Blocks.parse(key);
+        int x = Integer.parseInt(pr[1]), y = Integer.parseInt(pr[2]), z = Integer.parseInt(pr[3]);
+        try {
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+            java.io.DataOutputStream o = new java.io.DataOutputStream(bo);
+            writeVarInt(o, enc < 0 ? 2 : 1);
+            writeVarInt(o, 1);
+            o.writeInt(x); o.writeInt(y); o.writeInt(z);
+            writeVarInt(o, Math.max(enc, 0));
+            byte[] data = bo.toByteArray();
+            for (var pl : Bukkit.getOnlinePlayers())
+                pl.sendPluginMessage(plugin, "neobuilder:blocks", data);
+        } catch (java.io.IOException ignored) {}
+    }
+
+    private void syncPipe(String key, int enc) {
+        encCache.put(key, enc);
+        broadcastPipe(key, enc);
+    }
+
+    /** ログイン時に全パイプ位置マップを配信 */
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        if (encCache.isEmpty()) return;
+        try {
+            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+            java.io.DataOutputStream o = new java.io.DataOutputStream(bo);
+            writeVarInt(o, 1);
+            writeVarInt(o, encCache.size());
+            for (var en : encCache.entrySet()) {
+                String[] pr = Blocks.parse(en.getKey());
+                o.writeInt(Integer.parseInt(pr[1]));
+                o.writeInt(Integer.parseInt(pr[2]));
+                o.writeInt(Integer.parseInt(pr[3]));
+                writeVarInt(o, en.getValue());
+            }
+            e.getPlayer().sendPluginMessage(plugin, "neobuilder:blocks", bo.toByteArray());
+        } catch (java.io.IOException ignored) {}
+    }
+
+    private void spawnDisp(Location c, ItemStack item, Quaternionf rot) {
+        c.getWorld().spawn(c, ItemDisplay.class, d -> {
+            d.setItemStack(item);
+            d.getPersistentDataContainer().set(visKey,
+                    org.bukkit.persistence.PersistentDataType.BYTE, (byte) 1);
+            d.setTransformation(new Transformation(new Vector3f(),
+                    rot == null ? new Quaternionf() : rot,
+                    new Vector3f(1.001f), new Quaternionf()));
+        });
     }
 
     /** 指定方向に腕を出すべきか（同ファミリのパイプ or ファミリ別の接続先） */
@@ -239,25 +348,6 @@ public final class PipeManager implements Listener {
             case "energy" -> plugin.machines().at(adj) != null;
             default -> adj.getState() instanceof InventoryHolder;
         };
-    }
-
-    /** ブロックを種別用の壁ホストにし、隣接状況から接続高さを更新する */
-    private void applyVisual(Pipe p) {
-        Block b = blockOf(p.key());
-        if (b == null) return;
-        WallHost host = hostOf(p);
-        if (b.getType() != host.mat()) b.setType(host.mat(), false);
-        if (!(b.getBlockData() instanceof Wall w)) return;
-        boolean changed = false;
-        for (BlockFace f : FACES) {
-            boolean want = connects(p, b.getRelative(f));
-            if (f == BlockFace.UP || f == BlockFace.DOWN) continue; // up/downは非表示
-            Wall.Height tgt = want ? Wall.Height.LOW : Wall.Height.NONE;
-            if (w.getHeight(f) != tgt) { w.setHeight(f, tgt); changed = true; }
-        }
-        if (w.isWaterlogged()) { w.setWaterlogged(false); changed = true; }
-        if (w.isUp() != host.up()) { w.setUp(host.up()); changed = true; }
-        if (changed) b.setBlockData(w, false);
     }
 
     /** 周囲のパイプの見た目を再計算（非パイプの設置/破壊時にも呼ぶ） */
@@ -366,8 +456,12 @@ public final class PipeManager implements Listener {
             String cur = queue.poll();
             Pipe cp = pipes.get(cur);
             if (cp == null) continue;
+            // ヴォイドパイプ: アイテムを廃棄（終端。中継もしない）
+            if ("pipe_void".equals(cp.type())) return true;
             // テレポートパイプなら無線転送
             if ("pipe_teleport".equals(cp.type()) && deliverTeleport(cp, stack)) return true;
+            // 分配パイプ: 隣接インベントリへラウンドロビン投入
+            if ("pipe_distribution".equals(cp.type()) && deliverRoundRobin(cp, stack)) return true;
             // 隣接インベントリへ挿入
             if (deliverAdjacent(cur, stack)) return true;
             enqueueAdjPipes(cur, visited, queue);
@@ -401,6 +495,32 @@ public final class PipeManager implements Listener {
             if (rest.isEmpty()) return true;
             // 部分的に入った場合は残量で次のインベントリへ
             stack = rest.values().iterator().next();
+        }
+        return false;
+    }
+
+    /** 分配パイプ: 隣接インベントリへラウンドロビン投入 */
+    private final Map<String, Integer> rrCursor = new HashMap<>();
+
+    private boolean deliverRoundRobin(Pipe dp, ItemStack stack) {
+        Block b = blockOf(dp.key());
+        if (b == null) return false;
+        List<Block> invs = new ArrayList<>();
+        for (BlockFace f : BlockFace.values()) {
+            if (!f.isCartesian()) continue;
+            Block adj = b.getRelative(f);
+            if (pipes.containsKey(Blocks.key(adj))) continue;
+            if (adj.getState() instanceof InventoryHolder) invs.add(adj);
+        }
+        if (invs.isEmpty()) return false;
+        int start = rrCursor.getOrDefault(dp.key(), 0) % invs.size();
+        for (int i = 0; i < invs.size(); i++) {
+            int idx = (start + i) % invs.size();
+            var ih = (InventoryHolder) invs.get(idx).getState();
+            if (ih.getInventory().addItem(stack.clone()).isEmpty()) {
+                rrCursor.put(dp.key(), idx + 1);
+                return true;
+            }
         }
         return false;
     }

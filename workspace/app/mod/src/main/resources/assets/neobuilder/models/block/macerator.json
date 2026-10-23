@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "neobuilder:block/macerator_front",
+    "north": "neobuilder:block/macerator_front",
+    "south": "neobuilder:block/macerator_side",
+    "east": "neobuilder:block/macerator_side",
+    "west": "neobuilder:block/macerator_side",
+    "up": "neobuilder:block/macerator_top",
+    "down": "neobuilder:block/macerator_front"
+  }
+}

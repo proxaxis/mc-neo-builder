@@ -1,6 +1,10 @@
 package com.neobuilder;
 
 import com.neobuilder.core.data.DataStore;
+import com.neobuilder.cq.CqBosses;
+import com.neobuilder.cq.CqMobs;
+import com.neobuilder.cq.CqRigManager;
+import com.neobuilder.cq.CqWeapons;
 import com.neobuilder.economy.EconomyManager;
 import com.neobuilder.energy.EnergyManager;
 import com.neobuilder.gui.GuiManager;
@@ -42,6 +46,10 @@ public final class NeoBuilderPlugin extends JavaPlugin {
     private WorldManager worldManager;
     private DungeonManager dungeonManager;
     private WorldgenManager worldgenManager;
+    private CqWeapons cqWeapons;
+    private CqMobs cqMobs;
+    private CqBosses cqBosses;
+    private CqRigManager cqRigManager;
 
     @Override
     public void onEnable() {
@@ -63,6 +71,10 @@ public final class NeoBuilderPlugin extends JavaPlugin {
         this.worldManager = new WorldManager(this);
         this.dungeonManager = new DungeonManager(this);
         this.worldgenManager = new WorldgenManager(this);
+        this.cqWeapons = new CqWeapons(this);
+        this.cqMobs = new CqMobs(this);
+        this.cqBosses = new CqBosses(this);
+        this.cqRigManager = new CqRigManager(this);
 
         this.guiManager.enable();
         this.economyManager.enable();
@@ -76,6 +88,10 @@ public final class NeoBuilderPlugin extends JavaPlugin {
         this.worldManager.enable();
         this.dungeonManager.enable();
         this.worldgenManager.enable();
+        this.cqWeapons.enable();
+        this.cqMobs.enable();
+        this.cqBosses.enable();
+        this.cqRigManager.enable();
 
         getLogger().info("[NeoBuilder] enabled. Machines=" + machineManager.count()
                 + " Pipes=" + pipeManager.count());
@@ -83,6 +99,7 @@ public final class NeoBuilderPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (cqRigManager != null) cqRigManager.disable();
         if (dungeonManager != null) dungeonManager.disable();
         if (worldManager != null) worldManager.disable();
         if (utilityManager != null) utilityManager.disable();
@@ -219,6 +236,25 @@ public final class NeoBuilderPlugin extends JavaPlugin {
                 worldManager.spawnBoss(p.getLocation());
                 return true;
             }
+            case "cqboss" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("プレイヤーのみ"); return true; }
+                if (args.length < 2) {
+                    p.sendMessage("/nb cqboss <" + String.join("|",
+                            java.util.Arrays.stream(CqBosses.Kind.values())
+                                    .map(Enum::name).map(String::toLowerCase).toList()) + ">");
+                    return true;
+                }
+                var kind = CqBosses.Kind.of(args[1]);
+                if (kind == null) { p.sendMessage("不明なボス: " + args[1]); return true; }
+                cqBosses.spawn(p.getLocation(), kind);
+                return true;
+            }
+            case "cqmob" -> {
+                if (!(sender instanceof Player p)) { sender.sendMessage("プレイヤーのみ"); return true; }
+                if (args.length < 3) { p.sendMessage("/nb cqmob <race> <role>"); return true; }
+                cqMobs.spawn(p.getLocation(), CqMobs.Race.of(args[1]), CqMobs.Role.of(args[2]));
+                return true;
+            }
             case "reload" -> {
                 reloadConfig();
                 sender.sendMessage("config を再読み込みしました");
@@ -242,4 +278,7 @@ public final class NeoBuilderPlugin extends JavaPlugin {
     public ChantManager chants() { return chantManager; }
     public WorldManager world() { return worldManager; }
     public DungeonManager dungeons() { return dungeonManager; }
+    public CqMobs cqm() { return cqMobs; }
+    public CqBosses cqb() { return cqBosses; }
+    public CqRigManager cqrig() { return cqRigManager; }
 }

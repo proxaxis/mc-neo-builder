@@ -248,6 +248,86 @@ public final class ItemRegistry {
                 Tech.NONE, "ボスドロップ素材");
         reg("coin", Material.GOLD_NUGGET, 10061, "DLコイン", NamedTextColor.GOLD, Tech.NONE,
                 "通貨アイテム");
+
+        // ================= Chocolate Quest (Better Dungeons) 系 =================
+        // ダガー系: 背後攻撃2倍・右クリックガード
+        reg("dagger_iron", Material.IRON_SWORD, 20001, "鉄のダガー", NamedTextColor.WHITE, Tech.NONE,
+                "背撃2倍 / 右クリ:ガード");
+        reg("dagger_diamond", Material.DIAMOND_SWORD, 20002, "ダイヤのダガー", NamedTextColor.AQUA, Tech.NONE,
+                "背撃2倍 / 右クリ:ガード");
+        reg("dagger_trickster", Material.GOLDEN_SWORD, 20003, "トリックスターダガー", NamedTextColor.GOLD,
+                Tech.NONE, "背撃2倍 / 右クリ:透明化 / Shift+右クリ:瞬移");
+        reg("dagger_ninja", Material.NETHERITE_SWORD, 20004, "ニンジャダガー", NamedTextColor.DARK_GRAY,
+                Tech.NONE, "背撃2倍 / 右クリ:透明化5s / Shift+右クリ:瞬移10m");
+        // スピア系: 長射程 + 右クリック溜め攻撃
+        reg("spear_iron", Material.STICK, 20010, "鉄のスピア", NamedTextColor.WHITE, Tech.NONE,
+                "長射程 / 右クリ:前方薙ぎ払い");
+        reg("spear_diamond", Material.BLAZE_ROD, 20011, "ダイヤのスピア", NamedTextColor.AQUA, Tech.NONE,
+                "長射程 / 右クリ:前方薙ぎ払い");
+        reg("spear_fire", Material.BAMBOO, 20012, "ファイアスピア", NamedTextColor.RED, Tech.NONE,
+                "右クリ:直線炎上攻撃");
+        reg("spear_gun", Material.BREEZE_ROD, 20013, "ガンスピア", NamedTextColor.DARK_RED, Tech.NONE,
+                "右クリ:貫通弾発射");
+        // グレートソード系: 右クリック薙ぎ払い
+        reg("greatsword_iron", Material.IRON_AXE, 20020, "鉄のグレートソード", NamedTextColor.WHITE, Tech.NONE,
+                "右クリ:薙ぎ払い");
+        reg("greatsword_diamond", Material.DIAMOND_AXE, 20021, "ダイヤのグレートソード", NamedTextColor.AQUA,
+                Tech.NONE, "右クリ:薙ぎ払い");
+        reg("greatsword_bull", Material.NETHERITE_AXE, 20022, "ブルグレートソード", NamedTextColor.DARK_RED,
+                Tech.NONE, "右クリ:薙ぎ払い");
+        reg("greatsword_monking", Material.GOLDEN_AXE, 20023, "モンキンググレートソード", NamedTextColor.GOLD,
+                Tech.NONE, "右クリ:薙ぎ払い");
+        // ガジェット
+        reg("hookshot", Material.CLOCK, 20030, "フックショット", NamedTextColor.GRAY, Tech.NONE,
+                "右クリ:対象を引き寄せ");
+        reg("revolver", Material.IRON_NUGGET, 20031, "リボルバー", NamedTextColor.DARK_GRAY, Tech.NONE,
+                "右クリ:弾発射（CD3s）");
+        // 杖（スタッフ）系
+        reg("staff_healing", Material.BONE, 20040, "回復の杖", NamedTextColor.GREEN, Tech.NONE,
+                "右クリ:視線先の仲間/自身を回復");
+        reg("staff_fire", Material.BLAZE_ROD, 20041, "炎の杖", NamedTextColor.RED, Tech.NONE,
+                "右クリ:火球発射");
+        reg("staff_thunder", Material.LIGHTNING_ROD, 20042, "雷の杖", NamedTextColor.YELLOW, Tech.NONE,
+                "右クリ:着弾点へ落雷");
+        reg("staff_wind", Material.FEATHER, 20043, "風の杖", NamedTextColor.WHITE, Tech.NONE,
+                "右クリ:衝撃波で敵を吹き飛ばす");
+        reg("staff_vampiric", Material.WITHER_ROSE, 20044, "吸血の杖", NamedTextColor.DARK_PURPLE, Tech.NONE,
+                "右クリ:HP吸収弾");
+        reg("staff_poison", Material.POISONOUS_POTATO, 20045, "毒の杖", NamedTextColor.DARK_GREEN, Tech.NONE,
+                "右クリ:毒付与弾");
+        reg("staff_spider", Material.COBWEB, 20046, "蜘蛛の杖", NamedTextColor.GRAY, Tech.NONE,
+                "右クリ:糸で敵を拘束");
+        // ボスドロップ・特殊
+        reg("cursed_bone", Material.BONE, 20050, "呪われた骨", NamedTextColor.DARK_PURPLE, Tech.NONE,
+                "右クリ:吸血スケルトンを2体召喚（消費）");
+        reg("potion_healing", Material.POTION, 20051, "ヒーリングポーション", NamedTextColor.RED, Tech.NONE,
+                "右クリ:HP回復（消費）");
+        reg("badge_necromancer", Material.NETHER_STAR, 20060, "ネクロマンサーのバッジ", NamedTextColor.DARK_GRAY,
+                Tech.NONE, "ボス討伐証");
+        reg("badge_liche", Material.NETHER_STAR, 20061, "リッチのバッジ", NamedTextColor.DARK_PURPLE,
+                Tech.NONE, "ボス討伐証");
+        reg("badge_walker", Material.NETHER_STAR, 20062, "ウォーカーキングのバッジ", NamedTextColor.AQUA,
+                Tech.NONE, "ボス討伐証");
+        reg("badge_pirate", Material.NETHER_STAR, 20063, "海賊船長のバッジ", NamedTextColor.GOLD,
+                Tech.NONE, "ボス討伐証");
+        reg("sword_walker", Material.DIAMOND_SWORD, 20070, "ウォーカーソード", NamedTextColor.AQUA, Tech.NONE,
+                "ウォーカーキングの愛剣");
+        reg("sword_spider", Material.IRON_SWORD, 20071, "スパイダーソード", NamedTextColor.DARK_GREEN,
+                Tech.NONE, "攻撃時に毒付与");
+        reg("battle_axe_bull", Material.NETHERITE_AXE, 20072, "ブルバトルアクス", NamedTextColor.DARK_RED,
+                Tech.NONE, "強ノックバック");
+        // リグ用フルボディモデル（ItemDisplay専用、入手不可）
+        reg("rig_skeleton", Material.STICK, 30101, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_zombie", Material.STICK, 30102, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_pirate", Material.STICK, 30103, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_walker", Material.STICK, 30104, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_mummy", Material.STICK, 30105, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_pigman", Material.STICK, 30106, "リグ素体", NamedTextColor.GRAY, Tech.NONE, "");
+        reg("rig_necromancer", Material.STICK, 30111, "リグ素体", NamedTextColor.DARK_PURPLE, Tech.NONE, "");
+        reg("rig_liche", Material.STICK, 30112, "リグ素体", NamedTextColor.DARK_PURPLE, Tech.NONE, "");
+        reg("rig_walker_king", Material.STICK, 30113, "リグ素体", NamedTextColor.AQUA, Tech.NONE, "");
+        reg("rig_pirate_captain", Material.STICK, 30114, "リグ素体", NamedTextColor.DARK_RED, Tech.NONE, "");
+        reg("rig_pharaoh", Material.STICK, 30115, "リグ素体", NamedTextColor.GOLD, Tech.NONE, "");
     }
 
     /** 粉 → インゴットの精錬レシピを登録（ExactChoice でカスタムアイテムを識別） */

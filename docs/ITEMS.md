@@ -308,3 +308,57 @@ BuildCraft / IndustrialCraft2 / LogisticsPipes 等の工業系MODに相当する
 |---|---|---|
 | DLコイン | `/nb give coin` | 通貨アイテム。ダンジョンの宝箱から入手可能 |
 | ヴォイドコア | `/nb give void_core` | ボスドロップ素材。ダンジョン宝箱からも稀に入手 |
+
+## Chocolate Quest（Better Dungeons）系アイテム
+
+ダンジョン探索で手に入る武器・ガジェット・杖。陣営タグなし（ただし剣系ベースは科学陣営では攻撃不可）。
+
+### ダガー（背撃2倍・右クリックでガード）
+
+| アイテム | give コマンド | 説明 |
+|---|---|---|
+| 鉄のダガー | `/nb give dagger_iron` | 背撃2倍 / 右クリ:ガード（耐性+速度） |
+| ダイヤのダガー | `/nb give dagger_diamond` | 上位ダガー |
+| トリックスターダガー | `/nb give dagger_trickster` | 右クリ:短時間透明 / Shift+右クリ:瞬移8m |
+| ニンジャダガー | `/nb give dagger_ninja` | 右クリ:透明化5s / Shift+右クリ:瞬移10m |
+
+### スピア（長射程・右クリック特殊攻撃）
+
+| アイテム | give コマンド | 説明 |
+|---|---|---|
+| 鉄のスピア | `/nb give spear_iron` | 右クリ:前方薙ぎ払い |
+| ダイヤのスピア | `/nb give spear_diamond` | 上位スピア |
+| ファイアスピア | `/nb give spear_fire` | 右クリ:直線敵を炎上 |
+| ガンスピア | `/nb give spear_gun` | 右クリ:貫通弾発射 |
+
+### グレートソード（右クリック薙ぎ払い）
+
+| アイテム | give コマンド | 説明 |
+|---|---|---|
+| 鉄のグレートソード | `/nb give greatsword_iron` | 8ダメ薙ぎ払い |
+| ダイヤのグレートソード | `/nb give greatsword_diamond` | 9ダメ薙ぎ払い |
+| ブルグレートソード | `/nb give greatsword_bull` | 9ダメ薙ぎ払い |
+| モンキンググレートソード | `/nb give greatsword_monking` | 10ダメ薙ぎ払い |
+
+### ガジェット・杖・特殊
+
+| アイテム | give コマンド | 説明 |
+|---|---|---|
+| フックショット | `/nb give hookshot` | 右クリ:20m先の敵を引き寄せ |
+| リボルバー | `/nb give revolver` | 右クリ:弾発射（CD3s） |
+| 回復の杖 | `/nb give staff_healing` | 右クリ:対象/自身を6回復 |
+| 炎の杖 | `/nb give staff_fire` | 右クリ:火球発射 |
+| 雷の杖 | `/nb give staff_thunder` | 右クリ:視線先へ落雷 |
+| 風の杖 | `/nb give staff_wind` | 右クリ:周囲6m吹き飛ばし |
+| 吸血の杖 | `/nb give staff_vampiric` | 右クリ:対象に3ダメ+自3回復 |
+| 毒の杖 | `/nb give staff_poison` | 右クリ:周囲敵に毒II 10s |
+| 蜘蛛の杖 | `/nb give staff_spider` | 右クリ:対象を強拘束（鈍足V） |
+| 呪われた骨 | `/nb give cursed_bone` | 右クリ:吸血スケルトン2体召喚（消費） |
+| ヒーリングポーション | `/nb give potion_healing` | 右クリ:HP4回復（消費） |
+| ネクロマンサーのバッジ | `/nb give badge_necromancer` | ボス討伐証 |
+| リッチのバッジ | `/nb give badge_liche` | ボス討伐証 |
+| ウォーカーキングのバッジ | `/nb give badge_walker` | ボス討伐証 |
+| 海賊船長のバッジ | `/nb give badge_pirate` | ボス討伐証 |
+| ウォーカーソード | `/nb give sword_walker` | ボスドロップ武器 |
+| スパイダーソード | `/nb give sword_spider` | 攻撃時毒付与 |
+| ブルバトルアクス | `/nb give battle_axe_bull` | 強ノックバック |

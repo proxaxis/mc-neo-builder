@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "neobuilder:block/filler_front",
+    "north": "neobuilder:block/filler_front",
+    "south": "neobuilder:block/filler_side",
+    "east": "neobuilder:block/filler_side",
+    "west": "neobuilder:block/filler_side",
+    "up": "neobuilder:block/filler_top",
+    "down": "neobuilder:block/filler_bottom"
+  }
+}

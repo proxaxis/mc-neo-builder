@@ -91,12 +91,19 @@ public final class EngineMachine extends Machine {
     public void tick(Block block) {
         if (!isActive(block)) return;
         energy += outputPerTick();
-        // バッファが一定以上なら周囲へ配分
+        // バッファが一定以上なら周囲へ配分（実際に届いた分だけ減らす）
         if (energy > outputPerTick() * 4) {
-            double leftover = plugin.energy().distributeToNeighbors(block, energy * 0.5);
-            energy = Math.min(leftover, maxEnergy);
+            double push = energy * 0.5;
+            double leftover = plugin.energy().distributeToNeighbors(block, push);
+            energy = Math.min(energy - push + leftover, maxEnergy);
         }
         if (energy > maxEnergy) energy = maxEnergy;
+    }
+
+    /** エンジンは発電側なのでMJを受け取らない（キネシス網へ逆流させない） */
+    @Override
+    public double receiveEnergy(double amount) {
+        return 0;
     }
 
     @Override

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "particle": "neobuilder:block/reactor_chamber",
+    "all": "neobuilder:block/reactor_chamber"
+  }
+}

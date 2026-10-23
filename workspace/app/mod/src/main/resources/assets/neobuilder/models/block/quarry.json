@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "neobuilder:block/quarry_front",
+    "north": "neobuilder:block/quarry_front",
+    "south": "neobuilder:block/quarry_back",
+    "east": "neobuilder:block/quarry_side",
+    "west": "neobuilder:block/quarry_side",
+    "up": "neobuilder:block/quarry_top",
+    "down": "neobuilder:block/quarry_bottom"
+  }
+}

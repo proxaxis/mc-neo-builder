@@ -1,12 +1,15 @@
 package com.neobuilder.rpg;
 
 import com.neobuilder.NeoBuilderPlugin;
+import com.neobuilder.tech.AllegianceManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -104,6 +107,15 @@ public final class RpgManager implements Listener {
         PlayerData d = data(p.getUniqueId());
         if (d.clazz() != PlayerClass.NONE) {
             p.sendMessage(Component.text("既に「" + d.clazz().display() + "」に就いています。リセットは有償です", NamedTextColor.YELLOW));
+            return false;
+        }
+        var alleg = plugin.allegiance().get(p.getUniqueId());
+        if (alleg == AllegianceManager.Allegiance.SCIENCE && c != PlayerClass.SCIENTIST) {
+            p.sendMessage(Component.text("科学技術陣営の職業は Scientist に固定されます", NamedTextColor.YELLOW));
+            return false;
+        }
+        if (c == PlayerClass.SCIENTIST && alleg != AllegianceManager.Allegiance.SCIENCE) {
+            p.sendMessage(Component.text("Scientist は科学技術陣営専用です", NamedTextColor.RED));
             return false;
         }
         d.clazz(c);
@@ -223,6 +235,34 @@ public final class RpgManager implements Listener {
             default -> {}
         }
         e.setDamage(dmg);
+    }
+
+    /** 武器使用制限: 科学陣営は剣・弓・ボウガン・槍を使用不可（ツール類のみ） */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onWeaponAttack(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player attacker)) return;
+        if (!isMelee(e)) return;
+        if (plugin.allegiance().get(attacker.getUniqueId())
+                != AllegianceManager.Allegiance.SCIENCE) return;
+        Material hand = attacker.getInventory().getItemInMainHand().getType();
+        if (Tag.ITEMS_SWORDS.isTagged(hand) || hand == Material.TRIDENT) {
+            e.setCancelled(true);
+            attacker.sendActionBar(Component.text(
+                    "科学技術陣営では剣・槍は使用できません", NamedTextColor.RED));
+        }
+    }
+
+    /** トライデントの投擲も科学陣営は不可 */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onProjectileLaunch(ProjectileLaunchEvent e) {
+        if (!(e.getEntity() instanceof Trident)) return;
+        if (!(e.getEntity() instanceof Projectile proj)
+                || !(proj.getShooter() instanceof Player p)) return;
+        if (plugin.allegiance().get(p.getUniqueId())
+                != AllegianceManager.Allegiance.SCIENCE) return;
+        e.setCancelled(true);
+        p.sendActionBar(Component.text(
+                "科学技術陣営では槍は使用できません", NamedTextColor.RED));
     }
 
     /** 弓制限: Archer以外は射撃不可 */

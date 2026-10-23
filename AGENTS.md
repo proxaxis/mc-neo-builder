@@ -115,3 +115,30 @@
 - パイプの下向き接続腕（壁にdownプロパティ無し。chorus_plantなら6面あるが種類は1つだけ）
 - DL失敗したBC名（iron_fluid, emzuli_fluid, quartz_fluid, cobblestone_power, iron_power等）はmesh生成FB中 — 正しいBC名が分かれば `BC_PIPE_TEX` 修正で差替え可
 - ピストンアニメーション等は未実装
+
+## 実機検証で見つかった実装バグ（修正済）
+
+- **`Machine` が `EnergyManager.MjHolder` を実装していなかった** → `distributeToNeighbors` の `instanceof MjHolder` が常にfalseで、エンジンが**隣接マシンに直接給電できなかった**（キネシスパイプ経路は `receiveEnergy` 直呼びで動いていた）。`Machine implements MjHolder` で修正。実機でスターリング→粉砕機の粉生産を確認。
+- **`FluidManager.route()` がBFS開始ノード自身の隣接コンテナを検査しなかった** → 「大釜→パイプ→大釜」の最短構成で永遠に輸送されない（queue空で即false→差し戻し）。開始ノードをqueueに入れて修正。
+- **流体の往復振動** → パイプが配送先コンテナからも抽出するため流体が行き来して半々で安定する。`Pipe.lastDest`（非永続）に直近送液先を記録し、抽出元スキャンで除外して解消。3レベル完全転送を確認。
+- `route()` は送液先キーを返す形に変更し、抽出元は `exclude` で挿入先から除外。
+
+## MCP/bot 運用の注意（実機検証で確認）
+
+- **複数devin acpセッションが同名 `DevinBot` のMCPサーバを起動し蹴り合う**（"You logged in from another location"）。`ps aux | grep "main.js --host"` で重複を確認し、ソケット未接続の余分プロセスをkillする。蹴り合い中はインベントリがdesyncし、giveしたアイテムが `list-inventory` に出ない・place-block が全フェースで失敗する等の怪挙動になる。**まずプロセス重複を疑え**
+- サーバ再起動でbotは切断されるが、MCPサーバは自動再接続する（〜40秒）
+- `execute ... run say` の出力はRCONに返らない → 状態確認は `execute if block <pos> <block>[state]` の `Test passed/failed` を使う
+- mineflayerは**2つの壁（1.5高当たり判定）に挟まれた床面をクリックできない**（視線遮蔽で "No suitable reference block found"）→ パイプ列は端から順に外向きに設置する。隙間への後置きは不可能
+- `gamemode creative` 中はmineflayerの装備/インベントリ追跡が壊れやすい → 検証はサバイバルで
+- `/nb give` はプレイヤー専用 → botには `send-chat "/nb give <id>"`、バニラアイテムはRCON `give DevinBot` 可
+- `pipes.json`/`machines.json` は**非同期保存**（dirtyフラグ+定期フラッシュ）。登録直後にファイルへ反映されないのは正常で、実態はメモリ上のレジストリ。machines.json の energy/fuelBurn/progress はdirty契機（登録/解除）時しか保存されない
+- `data get block` はブロックエンティティ以外で "not a block entity" エラー → ブロック種別/状態はbot `get-block-info` か `execute if block` で
+- チャンク未ロード時は機械/パイプのtickも止まる → 無人検証は `forceload add` でチャンク固定
+
+## 検証済みの動作（v27時点）
+
+- パイプ設置→登録+一意ホスト壁変換（extract=andesite_wall、transport=cobblestone_wall、fluid=resin_brick_wall）+ 隣接方向のみ low 腕、waterlogged=false 維持
+- チェスト→抽出管→輸送管×2→チェスト: アイテム完全転送
+- エンジンが隣接チェストの石炭を消費（fuelBurn=1600）し発電→隣接粉砕機へ給電→鉱石→粉×2を側面チェストへ排出
+- 流体管: 水大釜→空大釜へ333mB単位で全量転送
+- パイプ破壊→登録解除。隣接ブロック設置/撤去で接続状態が壊れない（BlockPhysicsEventキャンセル有効）

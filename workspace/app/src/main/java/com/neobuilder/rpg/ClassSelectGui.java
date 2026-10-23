@@ -2,6 +2,7 @@ package com.neobuilder.rpg;
 
 import com.neobuilder.NeoBuilderPlugin;
 import com.neobuilder.gui.NbGui;
+import com.neobuilder.tech.AllegianceManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -25,7 +26,8 @@ public final class ClassSelectGui extends NbGui {
             PlayerClass.GUARDIAN, 14,
             PlayerClass.HEALER, 16,
             PlayerClass.MAGE, 28,
-            PlayerClass.ARCHER, 30);
+            PlayerClass.ARCHER, 30,
+            PlayerClass.SCIENTIST, 32);
 
     private static final Map<PlayerClass, List<String>> LORE = Map.of(
             PlayerClass.WARRIOR, List.of("近接 +20% / ノックバック耐性", "ウォークライ・クリーブラッシュ"),
@@ -33,7 +35,8 @@ public final class ClassSelectGui extends NbGui {
             PlayerClass.GUARDIAN, List.of("被ダメ -25% / ノックバック無効", "タウント・フォートレス"),
             PlayerClass.HEALER, List.of("味方回復支援", "サンクチュアリ・リザレクション"),
             PlayerClass.MAGE, List.of("属性耐性 / MP増加", "メテオ・フロストノヴァ"),
-            PlayerClass.ARCHER, List.of("唯一の弓使用可能職", "矢の雨・貫通射撃"));
+            PlayerClass.ARCHER, List.of("唯一の弓使用可能職", "矢の雨・貫通射撃"),
+            PlayerClass.SCIENTIST, List.of("工業・研究に特化した技術者", "剣・弓・槍は使用不可（ツールのみ）"));
 
     private final NeoBuilderPlugin plugin;
     private final RpgManager manager;
@@ -49,9 +52,17 @@ public final class ClassSelectGui extends NbGui {
 
     @Override protected int rows() { return 5; }
 
+    /** 陣営による職業制限: 科学はScientist固定、Scientistは科学専用 */
+    private boolean allowed(Player p, PlayerClass c) {
+        var a = plugin.allegiance().get(p.getUniqueId());
+        if (a == AllegianceManager.Allegiance.SCIENCE) return c == PlayerClass.SCIENTIST;
+        return c != PlayerClass.SCIENTIST;
+    }
+
     @Override protected void decorate(Player p) {
         for (var e : SLOTS.entrySet()) {
             PlayerClass c = e.getKey();
+            if (!allowed(p, c)) continue;
             ItemStack s = new ItemStack(c.icon());
             ItemMeta meta = s.getItemMeta();
             meta.displayName(Component.text(c.display(), NamedTextColor.GOLD)

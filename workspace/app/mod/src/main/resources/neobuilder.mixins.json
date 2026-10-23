@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "nb.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ClientPacketListenerMixin",
+    "ConnectionMixin",
+    "ItemDisplayTickMixin",
+    "RegistryFreezeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

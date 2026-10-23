@@ -48,14 +48,18 @@ public final class FluidManager {
         for (BlockFace f : BlockFace.values()) {
             if (!f.isCartesian()) continue;
             Block src = b.getRelative(f);
+            // 直近の送液先は抽出元にしない（流体の往復振動を防止）
+            if (Blocks.key(src).equals(pipe.lastDest()) && Fluid.of(src.getType()) != Fluid.NONE) continue;
             Fluid fluid = extractOne(src);
             if (fluid == Fluid.NONE) continue;
-            // 経路探索して最寄りの適合コンテナへ
-            if (!route(pipe, fluid)) {
+            // 経路探索して最寄りの適合コンテナへ（抽出元は挿入先から除外）
+            String dest = route(pipe, fluid, Blocks.key(src));
+            if (dest == null) {
                 // 届け先なし → 引いた分を戻す
                 insert(src, fluid);
                 continue;
             }
+            pipe.lastDest(dest);
             return; // 1tick 1輸送
         }
     }
@@ -94,12 +98,13 @@ public final class FluidManager {
         return false;
     }
 
-    /** BFSで流体パイプ網を辿り、最初に見つかった適合コンテナへ輸送 */
-    private boolean route(Pipe from, Fluid fluid) {
+    /** BFSで流体パイプ網を辿り、最初に見つかった適合コンテナへ輸送。成功時は送液先キーを返す */
+    private String route(Pipe from, Fluid fluid, String exclude) {
         Set<String> visited = new HashSet<>();
         Deque<String> queue = new ArrayDeque<>();
         String start = from.key();
         visited.add(start);
+        queue.add(start);
         enqueue(start, visited, queue);
         while (!queue.isEmpty() && visited.size() < MAX_BFS) {
             String cur = queue.poll();
@@ -110,14 +115,15 @@ public final class FluidManager {
                 if (!f.isCartesian()) continue;
                 Block adj = cb.getRelative(f);
                 if (isFluidPipe(adj)) continue;
+                if (Blocks.key(adj).equals(exclude)) continue;
                 Material mt = adj.getType();
                 if (mt == Material.CAULDRON || Fluid.of(mt) != Fluid.NONE) {
-                    if (insert(adj, fluid)) return true;
+                    if (insert(adj, fluid)) return Blocks.key(adj);
                 }
             }
             enqueue(cur, visited, queue);
         }
-        return false;
+        return null;
     }
 
     private void enqueue(String key, Set<String> visited, Deque<String> queue) {

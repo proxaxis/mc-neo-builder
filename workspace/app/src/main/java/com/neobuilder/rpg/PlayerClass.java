@@ -7,6 +7,7 @@ import org.bukkit.Material;
  */
 public enum PlayerClass {
     NONE("未就職", Material.BARRIER),
+    SCIENTIST("Scientist", Material.PISTON),
     WARRIOR("Warrior", Material.IRON_SWORD),
     ASSASSIN("Assassin", Material.IRON_AXE),
     GUARDIAN("Guardian", Material.SHIELD),

@@ -2,6 +2,7 @@ package com.neobuilder.tech;
 
 import com.neobuilder.NeoBuilderPlugin;
 import com.neobuilder.gui.NbGui;
+import com.neobuilder.rpg.ClassSelectGui;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -67,7 +68,8 @@ public final class TechSelectGui extends NbGui {
         if (manager.select(p, a)) {
             p.sendMessage(Component.text("「" + AllegianceManager.label(a) + "」を選択しました！",
                     NamedTextColor.GREEN));
-            plugin.gui().close(p);
+            // 続けて職業選択へ（科学陣営は Scientist のみ表示される）
+            plugin.gui().open(p, new ClassSelectGui(plugin, plugin.rpg()));
         }
     }
 }

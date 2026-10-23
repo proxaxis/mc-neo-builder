@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "particle": "neobuilder:block/solar_panel",
+    "all": "neobuilder:block/solar_panel"
+  }
+}

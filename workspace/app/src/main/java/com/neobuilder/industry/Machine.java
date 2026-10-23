@@ -13,7 +13,7 @@ import java.util.Map;
  * ブロック位置に紐付き、MachineManager のティックループで駆動される.
  * エネルギーは内部バッファに蓄積される.
  */
-public abstract class Machine {
+public abstract class Machine implements com.neobuilder.energy.EnergyManager.MjHolder {
 
     protected final NeoBuilderPlugin plugin;
     protected final String type;
