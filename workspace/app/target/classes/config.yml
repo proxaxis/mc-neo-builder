@@ -1,0 +1,64 @@
+# NeoBuilder 設定
+debug: false
+
+# プラグインが自動生成する2つのワールド
+# 戦闘・ダンジョン用（異世界）
+other-world: "world_dungeon"
+# 工業・生活用（オーバーワールド）
+life-world: "world_life"
+
+dungeon:
+  # 新規チャンクごとのダンジョン生成確率
+  spawn-chance: 0.03
+  # 1tickあたりの構造物配置ブロック数（TPS保護）
+  blocks-per-tick: 256
+  # ダンジョンボス出現率
+  boss-chance: 0.15
+
+economy:
+  starting-balance: 1000.0
+
+energy:
+  # エンジン出力 (MJ/tick)
+  redstone-engine-mj: 1.0
+  stirling-engine-mj: 5.0
+  combustion-engine-mj: 20.0
+  nuclear-engine-mj: 100.0
+
+quarry:
+  blocks-per-tick: 4
+  mj-per-block: 60.0
+  max-size: 64
+
+filler:
+  blocks-per-tick: 8
+  mj-per-block: 20.0
+
+macerator:
+  mj-per-operation: 400.0
+  ticks-per-operation: 100
+
+mass-break:
+  max-blocks: 128
+  cooldown-ms: 500
+
+pipes:
+  # 1 tick あたりのパイプ走査予算 (ms)
+  tick-budget-ms: 5
+  items-per-tick-per-pipe: 1
+
+logistics:
+  tick-budget-ms: 8
+  cache-ttl-ticks: 100
+
+efp:
+  # 災害発生の閾値
+  disaster-threshold: 10000.0
+  decay-per-minute: 5.0
+
+disaster:
+  check-interval-ticks: 6000
+  chance: 0.3
+
+chant:
+  session-timeout-ticks: 200

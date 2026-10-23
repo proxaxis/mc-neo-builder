@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# mcdesk — 仮想デスクトップ(mc_neo_builder_desktop)内の Minecraft クライアント操作用ヘルパー
+#   mcdesk launch [サーバ]   MC起動 (引数のサーバに自動参加。省略時はメニュー)
+#   mcdesk shot [name]       スクリーンショット → /tmp へコピーしてパス表示
+#   mcdesk click X Y [btn]   マウスクリック (btn: 1左/2中/3右/4,5ホイール)
+#   mcdesk move X Y          カーソル移動
+#   mcdesk drag X1 Y1 X2 Y2  ドラッグ
+#   mcdesk type TEXT         文字列入力
+#   mcdesk key KEY...        キー送信 (例: Return, Escape, t, ctrl+s)
+#   mcdesk windows           ウィンドウ一覧
+#   mcdesk focus             Minecraft ウィンドウをアクティブ化
+#   mcdesk log [N]           MC ログ tail
+#   mcdesk ps                MC プロセス確認
+#   mcdesk stop              MC 終了
+#   mcdesk exec CMD...       コンテナ内で任意コマンド (DISPLAY=:1)
+set -u
+C=mc_neo_builder_desktop
+cmd="${1:-help}"; shift || true
+DEX() { docker exec "$C" "$@"; }
+
+case "$cmd" in
+  launch)
+    if [ $# -ge 1 ]; then
+      docker exec -d -e MC_JOIN="$1" -u abc "$C" /config/mc/launch.sh
+    else
+      docker exec -d -u abc "$C" /config/mc/launch.sh
+    fi
+    echo "launched (log: mcdesk log)" ;;
+  shot)
+    f="/tmp/mc_shot_$(date +%s).png"
+    DEX scrot -o "$f" && docker cp "$C:$f" "$f" && echo "$f" ;;
+  click)  DEX xdotool mousemove "${1:?x}" "${2:?y}" click "${3:-1}" ;;
+  move)   DEX xdotool mousemove "${1:?x}" "${2:?y}" ;;
+  drag)   DEX xdotool mousemove "$1" "$2" mousedown 1 mousemove "$3" "$4" mouseup 1 ;;
+  type)   DEX xdotool type --delay 30 -- "$*" ;;
+  key)    DEX xdotool key "$@" ;;
+  windows) DEX sh -c 'xdotool search --onlyvisible --name "." getwindowname %@ 2>/dev/null | grep -v "^$"' ;;
+  focus)  DEX sh -c 'xdotool search --name "Minecraft" windowactivate --sync 2>/dev/null || xdotool search --class "minecraft" windowactivate --sync' ;;
+  log)    DEX tail -n "${1:-30}" /config/mc/mc.log ;;
+  ps)     DEX sh -c 'pgrep -af "java|run_mc" | grep -v pgrep' ;;
+  stop)   DEX sh -c 'pkill -f "versions/26.3" || pkill -f run_mc' ; echo stopped ;;
+  exec)   DEX env DISPLAY=:1 "$@" ;;
+  *) sed -n '2,20p' "$0" ;;
+esac

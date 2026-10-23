@@ -31,6 +31,9 @@ services:
       ONLINE_MODE: "FALSE"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "devpassword"
+      RESOURCE_PACK: "http://localserver:8000/NeoBuilderResourcePack.zip"
+      RESOURCE_PACK_SHA1: "77d5d5a4059b3d30da9b6cda099dc8cd1859a3b6"
+      RESOURCE_PACK_ENFORCE: "true"
       JVM_XX_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
     ports:
       - "25565:25565"
@@ -43,6 +46,41 @@ services:
       - nv_dist:/dist:ro
     networks:
       - n-mc_neo_builder
+
+  # Resource Pack HTTP Server (nv_dist の内容を配信)
+  packserver:
+    image: mc-neo-builder-workspace:latest
+    container_name: mc_neo_builder_packserver
+    hostname: packserver
+    command: /opt/java/openjdk/bin/jwebserver -d /app/dist -b 0.0.0.0 -p 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - nv_dist:/app/dist:ro
+    networks:
+      - n-mc_neo_builder
+    depends_on:
+      - workspace
+
+  # Virtual Desktop (KasmVNC/Selkies — ブラウザから http://<host>:3000 で操作)
+  desktop:
+    image: lscr.io/linuxserver/webtop:ubuntu-xfce
+    container_name: mc_neo_builder_desktop
+    shm_size: "1gb"
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Asia/Tokyo"
+      PASSWORD: "devpassword"
+      TITLE: "NeoBuilder Desktop"
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - nv_desktop:/config
+    networks:
+      - n-mc_neo_builder
+    restart: unless-stopped
 
   # Operation Agent
   operationer:
@@ -64,6 +102,7 @@ services:
 volumes:
   nv_server_data:
   nv_dist:
+  nv_desktop:
 
 networks:
   n-mc_neo_builder:

@@ -1,0 +1,31 @@
+name: NeoBuilder
+version: 0.1.0
+main: com.neobuilder.NeoBuilderPlugin
+api-version: '1.20'
+author: Cognition
+description: Compound industrial/RPG/economy plugin for Paper MC (server-side only)
+commands:
+  neobuilder:
+    description: NeoBuilder 管理コマンド
+    usage: /neobuilder <subcommand>
+    permission: neobuilder.admin
+    aliases: [nb]
+  tech:
+    description: 技術陣営選択
+    usage: /tech
+  job:
+    description: 職業選択
+    usage: /job
+  skill:
+    description: スキル発動
+    usage: /skill <name>
+  balance:
+    description: DL 残高照会
+    usage: /balance
+    aliases: [bal, money]
+  pay:
+    description: DL 送金
+    usage: /pay <player> <amount>
+permissions:
+  neobuilder.admin:
+    default: op

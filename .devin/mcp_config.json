@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "minecraft": {
+      "command": "node",
+      "args": [
+        "/operationer/tools/minecraft-mcp-server/dist/main.js",
+        "--host", "testserver",
+        "--port", "25565",
+        "--username", "DevinBot",
+        "--version", "26.1"
+      ]
+    }
+  }
+}
